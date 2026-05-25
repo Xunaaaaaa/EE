@@ -1,0 +1,12 @@
+data/
+models/
+venv/
+venv310/
+__pycache__/
+*.pyc
+.DS_Store
+.playwright-mcp/
+docs/
+*.md
+*.pdf
+.claude/

@@ -1,3 +1,4 @@
+import hashlib
 import subprocess
 import shutil
 from pathlib import Path
@@ -28,17 +29,15 @@ def download_corpus():
     malicious_dir.mkdir(exist_ok=True)
 
     print("Organizing scripts...")
-    for ps1 in (clone_dir / "powershell_benign_dataset").rglob("*.ps1"):
-        dest = benign_dir / ps1.name
-        if dest.exists():
-            dest = dest.with_stem(f"{dest.stem}_{hash(str(ps1)) % 100000}")
-        shutil.copy2(ps1, dest)
-
-    for ps1 in (clone_dir / "malicious_pure").rglob("*.ps1"):
-        dest = malicious_dir / ps1.name
-        if dest.exists():
-            dest = dest.with_stem(f"{dest.stem}_{hash(str(ps1)) % 100000}")
-        shutil.copy2(ps1, dest)
+    # Sorted order + a stable (hashlib) suffix keep file names identical on
+    # every machine; Python's built-in hash() is randomised per process.
+    for src_name, dest_dir in [("powershell_benign_dataset", benign_dir), ("malicious_pure", malicious_dir)]:
+        for ps1 in sorted((clone_dir / src_name).rglob("*.ps1")):
+            dest = dest_dir / ps1.name
+            if dest.exists():
+                rel = ps1.relative_to(clone_dir).as_posix()
+                dest = dest.with_stem(f"{dest.stem}_{hashlib.md5(rel.encode()).hexdigest()[:8]}")
+            shutil.copy2(ps1, dest)
 
     benign_count = len(list(benign_dir.rglob("*.ps1")))
     malicious_count = len(list(malicious_dir.rglob("*.ps1")))
